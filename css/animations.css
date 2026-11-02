@@ -1,0 +1,132 @@
+/* ==========================================================================
+   Aarthi Travels — animation system
+   Rules of thumb: transform + opacity only, short durations, one purpose per effect.
+   Content is always visible if scripts fail (see the `js` class safeguard in each page <head>).
+   ========================================================================== */
+
+/* ---------- Motion tokens: one set per device class ----------
+   Desktop 1200px+   : 26px rise, .8s, 120ms stagger, 30px side reveals (About), hover zoom 1.05, subtle 3D tilt
+   Tablet 768-1199px : 20px vertical rise only, .7s, 100ms stagger, no tilt / hover zoom / side movement
+   Mobile below 768px: 14px rise, .55s, 80ms stagger, vertical only, no hover-dependent effects
+   (JS reads the same breakpoints in js/animations.js - keep them in sync.) */
+:root { --rise-y: 26px; --rise-dur: .8s; --reveal-y: 26px; --reveal-x: 30px; --reveal-dur: .8s; }
+@media (max-width: 1199px) { :root { --rise-y: 20px; --rise-dur: .7s; --reveal-y: 20px; --reveal-dur: .7s; } }
+@media (max-width: 767px)  { :root { --rise-y: 14px; --rise-dur: .55s; --reveal-y: 14px; --reveal-dur: .55s; } }
+
+/* ---------- Keyframes ---------- */
+@keyframes rise { from { opacity: 0; transform: translate3d(0, var(--rise-y), 0); } to { opacity: 1; transform: none; } }
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(var(--kb-scale, 1.05)); } }
+@keyframes strip-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes caption-in { from { opacity: 0; transform: translate3d(0, var(--rise-y), 0); } to { opacity: 1; transform: none; } }
+@keyframes faq-in { from { opacity: 0; translate: 0 -8px; } to { opacity: 1; translate: none; } }
+@keyframes dialog-in { from { opacity: 0; transform: translateY(18px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes page-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes img-reveal { from { opacity: 0; scale: 1.05; } to { opacity: 1; scale: 1; } }
+@keyframes img-fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- Hero text entrance: eyebrow, heading, description, buttons in sequence ---------- */
+.hero-eyebrow, .slide-caption, .hero h1, .hero-text, .hero-ctas { animation: rise var(--rise-dur) var(--ease-out) backwards; }
+.hero-eyebrow { animation-delay: .10s; }
+.slide-caption { animation-delay: .18s; }
+.hero h1 { animation-delay: .25s; }
+.hero-text { animation-delay: .42s; }
+.hero-ctas { animation-delay: .60s; }
+@media (max-width: 767px) { /* shorter sequence on phones */
+  .hero-eyebrow { animation-delay: .05s; } .slide-caption { animation-delay: .10s; } .hero h1 { animation-delay: .15s; } .hero-text { animation-delay: .25s; } .hero-ctas { animation-delay: .35s; }
+}
+
+/* Panel change: the slider re-triggers .swap on every slide change so the text fades in (gentle rise) with the new photo */
+.hero-copy.swap { animation: caption-in var(--rise-dur) var(--ease-out) both; }
+
+/* ---------- Scroll reveal (only active when JS is running, so content never stays hidden) ----------
+   Uses the individual `translate`/`scale` properties so it never clashes with the card tilt `transform`. */
+.js .reveal, .js .reveal-item, .js .reveal-left, .js .reveal-right, .js .reveal-zoom { opacity: 0; translate: 0 var(--reveal-y); transition: opacity var(--reveal-dur) var(--ease-out), translate var(--reveal-dur) var(--ease-out), scale var(--reveal-dur) var(--ease-out); transition-delay: var(--d, 0s); }
+.js .reveal-left { translate: calc(var(--reveal-x) * -1) 0; }
+.js .reveal-right { translate: var(--reveal-x) 0; }
+.js .reveal-zoom { translate: 0 0; scale: .92; }
+.js .is-visible.reveal, .js .is-visible.reveal-item, .js .is-visible.reveal-left, .js .is-visible.reveal-right, .js .is-visible.reveal-zoom { opacity: 1; translate: none; scale: none; }
+/* Tablet + mobile: no horizontal movement, side reveals become vertical fade-ups */
+@media (max-width: 1199px) { .js .reveal-left, .js .reveal-right { translate: 0 var(--reveal-y); } }
+.js .section-head::after { transition: width .9s var(--ease-out) .3s; }
+.js .section-head:not(.is-visible)::after { width: 0; }
+
+/* ---------- Page transitions: light fade between pages ---------- */
+main { animation: page-in .5s ease backwards; }
+main, .site-footer { transition: opacity .22s ease, translate .22s ease; }
+body.page-leave main, body.page-leave .site-footer { opacity: 0; translate: 0 -8px; }
+
+/* ---------- Cards, images, FAQ, dialog ---------- */
+.faq[open] .faq-body { animation: faq-in .4s var(--ease-out); }
+.faq.is-animating { overflow: hidden; will-change: height; }
+.card-img::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(64, 24, 32, .22)); opacity: 0; transition: opacity .4s; pointer-events: none; }
+@media (hover: hover) { .card:hover .card-img::after { opacity: 1; } }
+.card-img img, .img-wrap img { transition: transform .6s var(--ease); }
+.booking-dialog[open] { animation: dialog-in .35s var(--ease-out); }
+
+/* Button shimmer: single sweep on hover only */
+.btn-primary::after, .btn-gold::after { content: ""; position: absolute; top: 0; left: -120%; width: 60%; height: 100%; background: linear-gradient(100deg, transparent, rgba(217, 188, 131, .45), transparent); transform: skewX(-20deg); pointer-events: none; }
+@media (hover: hover) { .btn-primary:hover::after, .btn-gold:hover::after { left: 140%; transition: left .7s var(--ease); } }
+
+/* Gentle 3D card tilt + image hover zoom (desktop 1200px+ with a mouse only; tablet and mobile get neither) */
+@media (min-width: 1200px) and (hover: hover) and (pointer: fine) {
+  .tilt { transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--ty, 0px)); transition: transform .4s var(--ease); }
+  .tilt:hover { --ty: -6px; will-change: transform; }
+  .tilt:hover .card-img img, .tilt:hover .img-wrap img { transform: scale(1.05); }
+  .grid-vehicles .tilt:hover .card-img img { transform: scale(1.03); }   /* vehicle photos: gentler, so they stay fully visible */
+  .grid-vehicles .tilt:hover .urbania-slider img { transform: none; }    /* Urbania slider never zooms */
+  .tilt.is-tracking { transition: transform .08s linear; }
+}
+
+/* ---------- Page banners: heading, then description ---------- */
+.page-banner h1 { animation: rise var(--rise-dur) var(--ease-out) .10s backwards; }
+.page-banner p { animation: rise var(--rise-dur) var(--ease-out) .26s backwards; }
+
+/* ---------- Card entrance: the photo and the card text follow the card itself ---------- */
+.js .reveal-item.is-visible .card-body > * { animation: rise var(--rise-dur) var(--ease-out) backwards; animation-delay: calc(var(--d, 0s) + .14s); }
+.js .reveal-item.is-visible .card-body > :nth-child(2) { animation-delay: calc(var(--d, 0s) + .20s); }
+.js .reveal-item.is-visible .card-body > :nth-child(3) { animation-delay: calc(var(--d, 0s) + .26s); }
+.js .reveal-item.is-visible .card-body > :nth-child(4) { animation-delay: calc(var(--d, 0s) + .32s); }
+.js .reveal-item.is-visible .card-body > :nth-child(n+5) { animation-delay: calc(var(--d, 0s) + .38s); }
+/* Tablet + mobile (no hover zoom there): destination photos reveal gently, vehicle photos simply fade in (never scaled, never cropped) */
+@media (max-width: 1199px) {
+  .js .grid-dest .reveal-item.is-visible .card-img img { animation: img-reveal calc(var(--rise-dur) + .2s) var(--ease-out) backwards; animation-delay: calc(var(--d, 0s) + .08s); }
+  .js .grid-vehicles .reveal-item.is-visible .card-img:not(.urbania-slider) img { animation: img-fade calc(var(--rise-dur) + .2s) var(--ease-out) backwards; animation-delay: calc(var(--d, 0s) + .08s); }
+}
+
+/* ---------- About: 30+ years statement + badge ---------- */
+.prose .experience-note strong { background: linear-gradient(90deg, var(--gold), var(--gold-metallic)) no-repeat 0 100% / 100% 2px; transition: background-size 1s var(--ease-out) .55s; }
+.js .experience-note.reveal-zoom:not(.is-visible), .js .exp-badge.reveal-zoom:not(.is-visible) { scale: .97; }
+.js .experience-note.reveal-zoom:not(.is-visible) strong { background-size: 0 2px; }
+.js .exp-badge.reveal-zoom { --d: .3s; }
+/* Phones: on the About page the first photo sits above its text, so the photo appears first, then the text */
+@media (max-width: 767px) { .about-block.mobile-img-first .split-media { order: -1; } }
+
+/* ---------- Form focus: label and field respond together ---------- */
+.field label { transition: color .25s var(--ease); }
+.field:focus-within label { color: var(--burgundy); }
+
+/* ---------- FAQ: the +/x icon turns back smoothly while the panel closes ---------- */
+.faq.is-closing summary::after { transform: translateY(-50%) rotate(0deg); }
+
+/* ---------- Reduced motion ----------
+   No sliding, zooming or entrance movement. The hero keeps a simple cross-fade so slide changes stay visible. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .hero-eyebrow, .hero h1, .hero-text, .hero-ctas, .welcome-strip p,
+  .hero-copy.swap, .slide-caption, .page-banner h1, .page-banner p,
+  main, .faq[open] .faq-body, .booking-dialog[open] { animation: none; }
+  .hero-bg-slide { transition-duration: 700ms; }
+  .hero-bg-slide img, .hero-bg-slide.is-active img, .hero-bg-slide.is-leaving img { animation: none; transform: none; }
+  .js .reveal, .js .reveal-item, .js .reveal-left, .js .reveal-right, .js .reveal-zoom { opacity: 1; translate: none; scale: none; transition: none; }
+  .js .section-head::after, .js .content-section h2::after { transition: none; }
+  main, .site-footer, body.page-leave main, body.page-leave .site-footer { transition: none; translate: none; opacity: 1; }
+  .tilt, .tilt:hover { transform: none; transition: none; }
+  .btn:hover, .btn:active, .wa-float:hover, .wa-float:active { transform: none; }
+  .btn-primary:hover::after, .btn-gold:hover::after { transition: none; }
+  .card-img img, .tilt:hover .card-img img { transition: none; transform: none; }
+  .js .reveal-item .card-body > *, .js .grid-dest .reveal-item .card-img img, .js .grid-vehicles .reveal-item .card-img img { animation: none; }
+  .js .reveal-flow, .js .experience-note, .js .exp-badge { opacity: 1; translate: none; scale: none; transition: none; }
+  .prose .experience-note strong { transition: none; background-size: 100% 2px; }
+  .field label { transition: none; }
+}
